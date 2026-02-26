@@ -1,6 +1,8 @@
-name: Send Slack Message
+name: Slack Notify
 
 on:
+  push:
+    branches: ['**']
   workflow_dispatch:
     inputs:
       message:
@@ -12,8 +14,23 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Slack notification
+      - uses: actions/checkout@v4
+
+      - name: Build message
+        id: msg
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MSG="${{ github.event.inputs.message }}"
+          else
+            MSG=$(git log -1 --pretty=format:'%s')
+          fi
+          echo "text=$MSG" >> "$GITHUB_OUTPUT"
+
+      - name: Send to Slack
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg text "[${{ github.repository }}] ${{ steps.msg.outputs.text }}" \
+            '{text: $text}')
           curl -sf -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"${{ github.event.inputs.message }}\"}" \
+            --data "$PAYLOAD" \
             "${{ secrets.SLACK_WEBHOOK_URL }}"
