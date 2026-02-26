@@ -1,0 +1,19 @@
+name: Send Slack Message
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message to send to Slack'
+        required: true
+        default: 'cc connected'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        run: |
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"${{ github.event.inputs.message }}\"}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
